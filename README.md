@@ -1,27 +1,29 @@
 # Doručenie
 
-Doručenie is a Next.js App Router foundation for a production courier performance and delivery SLA monitoring product. The application is intentionally data-free until real delivery sources are connected, while Phase 2 provides Supabase email/password identity, organization bootstrap, and protected workspace routing.
+Doručenie is a multi-tenant courier performance and delivery SLA monitoring SaaS. It connects real delivery sources, normalizes courier events, evaluates SLA risk and breaches, and provides courier performance analytics.
 
 ## Stack
 
-- Next.js App Router
-- React and strict TypeScript
-- Tailwind CSS v4 through PostCSS
-- Lucide icons
-- Vitest for unit tests
+- Next.js App Router / React / strict TypeScript
+- Tailwind CSS v4
+- Supabase Auth + Postgres + RLS + Vault
+- PostgreSQL-backed jobs with atomic `SKIP LOCKED` claiming
+- Vercel for the web application
+- Whop embedded checkout for billing
 
-## Local development
+## Core architecture
 
-Requirements: Node.js 20.9 or newer.
+`shipments` are tenant-scoped. Courier providers implement the common adapter in `lib/couriers`. Workers process durable Postgres jobs with a 15-minute lease and 60-second heartbeat. The scheduler only enqueues work and fans out to at most five workers.
+
+See `docs/architecture.md`, `docs/jobs.md`, `docs/security.md`, `docs/billing.md`, and `docs/deployment.md`.
+
+## Development
+
+Requirements: Node.js 22+ recommended.
 
 ```bash
 npm install
 npm run dev
-```
-
-Useful checks:
-
-```bash
 npm run typecheck
 npm run lint
 npm run test
@@ -30,12 +32,11 @@ npm run build
 
 ## Environment
 
-Copy `.env.example` to `.env.local` for local configuration. The example file contains empty placeholders only. Public variables are limited to values intended for browser-safe use; service-role keys, provider credentials, webhook secrets, and worker secrets must remain server-side.
+Copy `.env.example` to `.env.local`. Never commit real secrets. Service-role keys, Vault references, courier credentials, Whop webhook secrets and worker secrets are server-only.
 
-Phase 2 initializes Supabase Auth through `@supabase/ssr`. Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `NEXT_PUBLIC_APP_URL` in `.env.local`. Add `${NEXT_PUBLIC_APP_URL}/auth/callback` to the Supabase Auth redirect allow list. The signup trigger in `supabase/migrations/20260901000000_phase_2_identity_and_tenancy.sql` creates the profile, organization, and owner membership; the application never accepts an organization ownership or membership decision from the browser.
+## Integrations
 
-Whop, Shopify, courier APIs, Resend, and Sentry are not initialized. Those integrations should be added behind their server-side boundaries in later milestones, using the variables already reserved in `.env.example`.
-
-## UI foundation
-
-Design tokens live in `app/globals.css` as semantic CSS variables with light and dark system themes. Reusable controls are in `components/ui`, and the root shell is composed from semantic landmarks with visible keyboard focus, a skip link, responsive layout behavior, and reduced-motion support.
+- DHL Unified Shipment Tracking is implemented against the current DHL Group tracking endpoint.
+- DPD is implemented behind a country-specific configured endpoint; the application refuses to guess a DPD API product when credentials/configuration are missing.
+- Whop checkout is embedded in the application and subscription state is controlled by verified webhook events.
+- Shopify, Resend and Sentry require external application credentials before their production flows can be activated.
