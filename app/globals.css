@@ -1,0 +1,210 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+
+  --token-color-bg-canvas: #f5f8fa;
+  --token-color-bg-surface: #ffffff;
+  --token-color-bg-surface-raised: #ffffff;
+  --token-color-bg-surface-muted: #edf3f5;
+  --token-color-bg-inverse: #0d1e2a;
+
+  --token-color-text-primary: #122936;
+  --token-color-text-secondary: #476371;
+  --token-color-text-muted: #637b87;
+  --token-color-text-on-brand: #f3fffd;
+
+  --token-color-brand-default: #0c716b;
+  --token-color-brand-strong: #075b57;
+  --token-color-brand-soft: #e1f3f0;
+
+  --token-color-border-subtle: #dbe6e9;
+  --token-color-border-default: #b8cbd1;
+  --token-color-focus: #087f9b;
+
+  --token-color-success-soft: #e3f4ed;
+  --token-color-success-strong: #176648;
+  --token-color-warning-soft: #fff2d9;
+  --token-color-warning-strong: #8a5a08;
+  --token-color-danger-soft: #fde8e7;
+  --token-color-danger-strong: #a53d3a;
+
+  --token-font-family-sans: "Inter", "Avenir Next", "Segoe UI", sans-serif;
+  --token-font-family-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+
+  --token-space-1: 4px;
+  --token-space-2: 8px;
+  --token-space-3: 12px;
+  --token-space-4: 16px;
+  --token-space-5: 20px;
+  --token-space-6: 24px;
+  --token-space-8: 32px;
+  --token-space-10: 40px;
+  --token-space-12: 48px;
+  --token-space-16: 64px;
+  --token-space-20: 80px;
+  --token-space-24: 96px;
+
+  --token-radius-control: 10px;
+  --token-radius-panel: 16px;
+  --token-radius-pill: 999px;
+
+  --token-shadow-card: 0 1px 2px rgb(18 41 54 / 0.04);
+  --token-shadow-button: 0 1px 2px rgb(7 91 87 / 0.16);
+  --token-shadow-float: 0 18px 48px rgb(18 41 54 / 0.1);
+
+  --token-motion-duration-fast: 150ms;
+  --token-motion-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --token-color-bg-canvas: #0b151d;
+    --token-color-bg-surface: #11232d;
+    --token-color-bg-surface-raised: #162d38;
+    --token-color-bg-surface-muted: #19333d;
+    --token-color-bg-inverse: #edf8f7;
+
+    --token-color-text-primary: #e8f3f3;
+    --token-color-text-secondary: #afc5c9;
+    --token-color-text-muted: #8ba7ad;
+    --token-color-text-on-brand: #062522;
+
+    --token-color-brand-default: #5cc9bc;
+    --token-color-brand-strong: #8be1d5;
+    --token-color-brand-soft: #183f3d;
+
+    --token-color-border-subtle: #24404a;
+    --token-color-border-default: #3b5c66;
+    --token-color-focus: #78d9ec;
+
+    --token-color-success-soft: #153a31;
+    --token-color-success-strong: #8fe0bd;
+    --token-color-warning-soft: #47371b;
+    --token-color-warning-strong: #f2ca77;
+    --token-color-danger-soft: #482524;
+    --token-color-danger-strong: #ffaaa5;
+
+    --token-shadow-card: 0 1px 2px rgb(0 0 0 / 0.22);
+    --token-shadow-button: 0 1px 2px rgb(0 0 0 / 0.26);
+    --token-shadow-float: 0 18px 48px rgb(0 0 0 / 0.3);
+  }
+}
+
+@theme inline {
+  --color-canvas: var(--token-color-bg-canvas);
+  --color-surface: var(--token-color-bg-surface);
+  --color-surface-raised: var(--token-color-bg-surface-raised);
+  --color-surface-muted: var(--token-color-bg-surface-muted);
+  --color-inverse: var(--token-color-bg-inverse);
+
+  --color-ink: var(--token-color-text-primary);
+  --color-ink-soft: var(--token-color-text-secondary);
+  --color-ink-muted: var(--token-color-text-muted);
+  --color-on-brand: var(--token-color-text-on-brand);
+
+  --color-brand: var(--token-color-brand-default);
+  --color-brand-strong: var(--token-color-brand-strong);
+  --color-brand-soft: var(--token-color-brand-soft);
+  --color-border-subtle: var(--token-color-border-subtle);
+  --color-border-default: var(--token-color-border-default);
+  --color-focus: var(--token-color-focus);
+  --color-success: var(--token-color-success-strong);
+  --color-success-soft: var(--token-color-success-soft);
+  --color-success-strong: var(--token-color-success-strong);
+  --color-warning: var(--token-color-warning-strong);
+  --color-warning-soft: var(--token-color-warning-soft);
+  --color-warning-strong: var(--token-color-warning-strong);
+  --color-danger-soft: var(--token-color-danger-soft);
+  --color-danger-strong: var(--token-color-danger-strong);
+
+  --font-sans: var(--token-font-family-sans);
+  --font-mono: var(--token-font-family-mono);
+
+  --spacing-1: var(--token-space-1);
+  --spacing-2: var(--token-space-2);
+  --spacing-3: var(--token-space-3);
+  --spacing-4: var(--token-space-4);
+  --spacing-5: var(--token-space-5);
+  --spacing-6: var(--token-space-6);
+  --spacing-8: var(--token-space-8);
+  --spacing-10: var(--token-space-10);
+  --spacing-12: var(--token-space-12);
+  --spacing-16: var(--token-space-16);
+  --spacing-20: var(--token-space-20);
+  --spacing-24: var(--token-space-24);
+
+  --radius-control: var(--token-radius-control);
+  --radius-panel: var(--token-radius-panel);
+  --radius-pill: var(--token-radius-pill);
+
+  --shadow-card: var(--token-shadow-card);
+  --shadow-button: var(--token-shadow-button);
+  --shadow-float: var(--token-shadow-float);
+
+  --duration-fast: var(--token-motion-duration-fast);
+  --ease-out: var(--token-motion-ease-out);
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    border-color: var(--token-color-border-subtle);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background: var(--token-color-bg-canvas);
+    color: var(--token-color-text-primary);
+    font-family: var(--token-font-family-sans);
+  }
+
+  ::selection {
+    background: var(--token-color-brand-soft);
+    color: var(--token-color-text-primary);
+  }
+
+  :where(a, button, input, textarea, select, summary):focus-visible {
+    outline: 3px solid var(--token-color-focus);
+    outline-offset: 3px;
+  }
+}
+
+.skip-link {
+  position: fixed;
+  top: var(--token-space-4);
+  left: var(--token-space-4);
+  z-index: 50;
+  transform: translateY(-200%);
+  border-radius: var(--token-radius-control);
+  background: var(--token-color-bg-inverse);
+  color: var(--token-color-bg-canvas);
+  padding: var(--token-space-3) var(--token-space-4);
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: transform var(--token-motion-duration-fast) var(--token-motion-ease-out);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

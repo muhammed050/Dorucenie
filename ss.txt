@@ -1,0 +1,2752 @@
+# BUILD DORUČENIE — PRODUCTION-READY COURIER PERFORMANCE & DELIVERY SLA MONITOR
+
+You are the lead architect, senior full-stack engineer, database engineer, security engineer, DevOps engineer, and QA engineer responsible for building the entire Dorucenie SaaS product.
+
+You are not writing a prototype.
+
+You are building a production-ready SaaS that can be deployed publicly and used by real paying customers.
+
+The product domain is:
+
+https://dorucenie.com
+
+The product name is:
+
+Doručenie
+
+Core positioning:
+
+> Know which couriers are hurting your business before your customers complain.
+
+Doručenie is a B2B SaaS for e-commerce businesses that monitors courier performance, delivery SLAs, shipment delays, failed deliveries, and courier reliability.
+
+It is NOT a courier company.
+
+It is NOT a route optimization platform.
+
+It is NOT a driver management system.
+
+It is NOT another generic order tracking application.
+
+Its primary value is:
+
+> Doručenie analyzes delivery data and tells merchants which couriers, countries, services, and shipments are causing SLA failures and customer-impacting delays.
+
+==================================================
+
+1. NON-NEGOTIABLE DEVELOPMENT RULES
+   ==================================================
+
+Build the actual application.
+
+Do NOT only create:
+
+* architecture documents
+* mockups
+* TODO files
+* placeholder pages
+* fake dashboards
+* fake authentication
+* fake billing
+* fake API integrations
+* fake courier data in production mode
+
+Every important feature must be implemented.
+
+If an external API requires credentials that are unavailable during development, implement the real integration architecture and provide a clearly isolated development/sandbox mode. Never pretend that fake data is real production data.
+
+Do not leave obvious TODO comments for core functionality.
+
+Do not ask the user unnecessary questions.
+
+Make reasonable engineering decisions and continue.
+
+Before adding a dependency, verify that it is compatible with the current project versions.
+
+Use strict TypeScript.
+
+Avoid `any` unless absolutely unavoidable.
+
+Validate all external input with Zod or equivalent runtime validation.
+
+Never expose secrets to the browser.
+
+Never expose service-role credentials.
+
+Never expose courier API credentials.
+
+Never trust the frontend for authorization, subscription status, limits, or organization ownership.
+
+==================================================
+2. PRODUCT STACK
+================
+
+Use:
+
+Frontend:
+
+* Next.js
+* App Router
+* TypeScript
+* React
+* Tailwind CSS
+* shadcn/ui or equivalent accessible component system
+* Lucide icons
+
+Backend:
+
+* Next.js server routes/server actions where appropriate
+* Supabase Edge Functions for background/server-side processing where appropriate
+
+Database:
+
+* Supabase PostgreSQL
+
+Authentication:
+
+* Supabase Auth
+
+Authorization:
+
+* PostgreSQL Row Level Security
+
+Secrets:
+
+* Supabase Vault
+
+Scheduling:
+
+* Supabase Cron / pg_cron
+* pg_net where appropriate for invoking Edge Functions
+
+Payments:
+
+* Whop
+* Embedded Whop Checkout
+* Whop API
+* Whop webhooks
+
+Monitoring:
+
+* Sentry
+
+Email:
+
+* Resend
+
+Validation:
+
+* Zod
+
+Charts:
+
+* Recharts or another lightweight accessible charting library
+
+Testing:
+
+* Vitest
+* Playwright
+
+Deployment:
+
+* Vercel for Next.js
+* Supabase for database/auth/functions/cron
+
+DO NOT require a VPS.
+
+DO NOT introduce Kubernetes.
+
+DO NOT introduce Kafka.
+
+DO NOT introduce microservices unless there is a concrete need.
+
+==================================================
+3. IMPORTANT PAYMENT REQUIREMENT
+================================
+
+WHOP MUST BE EMBEDDED INSIDE DORUČENIE.
+
+The user must NOT be redirected to a Whop-hosted checkout page.
+
+Use Whop's embedded checkout package.
+
+Use:
+
+@whop/checkout
+
+and the React embedded checkout component.
+
+The pricing page should contain embedded checkout UI for the selected plan.
+
+Example conceptual flow:
+
+Pricing
+→ Select plan
+→ Embedded Whop Checkout appears inside Dorucenie
+→ User pays
+→ Whop sends webhook
+→ Backend verifies webhook
+→ Subscription/entitlement is synchronized
+→ User receives access
+→ Dashboard unlocks plan features
+
+Do not rely on the frontend's payment-success callback as proof of payment.
+
+The backend must verify the authoritative Whop state.
+
+Use Whop sandbox during development.
+
+Production must be switchable through environment variables.
+
+Support:
+
+* Free plan
+* Starter
+* Growth
+* Business
+
+Plan IDs must be configurable through environment variables.
+
+Example:
+
+WHOP_PLAN_STARTER
+WHOP_PLAN_GROWTH
+WHOP_PLAN_BUSINESS
+
+Do not hardcode real production plan IDs in source code.
+
+Create a centralized billing configuration.
+
+==================================================
+4. BILLING PLANS
+================
+
+Use the following initial pricing:
+
+FREE
+
+* $0/month
+* 100 tracked shipments/month
+* 1 organization member
+* 1 courier connection
+* Basic dashboard
+* Basic SLA monitoring
+* Email alerts
+
+STARTER
+
+* $29/month
+* 2,000 shipments/month
+* 3 members
+* 3 courier connections
+* Advanced courier analytics
+* SLA alerts
+* Country analytics
+* Reports
+
+GROWTH
+
+* $79/month
+* 10,000 shipments/month
+* 10 members
+* Multiple courier connections
+* Advanced SLA analytics
+* At-risk prediction
+* Courier comparison
+* Scheduled reports
+* Priority processing
+
+BUSINESS
+
+* $199/month
+* 50,000 shipments/month
+* Unlimited members
+* Advanced reporting
+* Multiple stores
+* Advanced alerting
+* API access
+* Priority support
+
+Make these values configurable.
+
+Do not hardcode limits throughout the application.
+
+Create:
+
+lib/billing/plans.ts
+
+with centralized plan definitions.
+
+Every paid feature must be checked server-side.
+
+==================================================
+5. MULTI-TENANCY
+================
+
+The application is multi-tenant.
+
+Hierarchy:
+
+User
+→ Organization
+→ Members
+→ Stores
+→ Courier Connections
+→ Shipments
+→ Events
+→ SLA Rules
+→ Alerts
+→ Reports
+
+Every tenant-owned table must contain organization_id where appropriate.
+
+Enable RLS on every exposed tenant table.
+
+Never trust organization_id supplied by the browser.
+
+Resolve the user's organization from authenticated membership.
+
+Create helper functions for:
+
+getCurrentUser()
+
+getCurrentOrganization()
+
+requireOrganizationMember()
+
+requireOrganizationAdmin()
+
+requireActiveSubscription()
+
+requireFeature()
+
+requireShipmentLimit()
+
+==================================================
+6. AUTHENTICATION
+=================
+
+Implement:
+
+* Email/password registration
+* Email verification
+* Login
+* Logout
+* Forgot password
+* Reset password
+* Session persistence
+* Protected dashboard routes
+* Auth middleware
+* Proper unauthorized handling
+
+Optional OAuth providers may be added only if they are easy to configure.
+
+Do not make OAuth mandatory for MVP.
+
+After signup:
+
+User
+→ Organization creation
+→ Organization membership
+→ Onboarding
+→ Dashboard
+
+The user should not land in an empty broken dashboard.
+
+==================================================
+7. ONBOARDING
+=============
+
+Create a polished onboarding wizard.
+
+Steps:
+
+1. Welcome
+2. Company/store name
+3. Country
+4. Monthly shipment volume
+5. Connect Shopify
+6. Connect courier
+7. Configure delivery SLA
+8. Choose alert preferences
+9. Finish
+
+Allow skipping integrations and returning later.
+
+Show progress.
+
+Persist onboarding state.
+
+Do not lose onboarding progress if the user refreshes.
+
+==================================================
+8. LANDING PAGE
+===============
+
+Build a premium B2B SaaS landing page.
+
+Hero:
+
+Headline:
+
+"Know Which Couriers Are Costing You Customers."
+
+Subheadline:
+
+"Doručenie monitors your delivery performance, detects SLA failures, and shows exactly which couriers, regions, and shipments are hurting your business."
+
+Primary CTA:
+
+"Start Monitoring Free"
+
+Secondary CTA:
+
+"See How It Works"
+
+Sections:
+
+* Problem
+* How Doručenie works
+* Courier performance example
+* SLA monitoring
+* At-risk shipments
+* Courier comparison
+* Analytics
+* Integrations
+* Pricing
+* FAQ
+* Security
+* Final CTA
+* Footer
+
+Do not use exaggerated fake claims.
+
+Do not display fake customer logos.
+
+Do not invent customer testimonials.
+
+Use product UI screenshots/mockups generated from the actual application UI.
+
+SEO:
+
+* title
+* description
+* canonical
+* Open Graph
+* Twitter/X metadata
+* robots
+* sitemap
+* structured data
+* Organization schema
+* SoftwareApplication schema where appropriate
+
+Support English as the primary language.
+
+Structure the application so Arabic can be added later without rewriting the UI.
+
+==================================================
+9. APPLICATION ROUTES
+=====================
+
+Create:
+
+/
+/pricing
+/features
+/integrations
+/security
+/about
+/contact
+/login
+/signup
+/forgot-password
+/reset-password
+/terms
+/privacy
+
+Dashboard:
+
+/dashboard
+/dashboard/overview
+/dashboard/shipments
+/dashboard/shipments/[id]
+/dashboard/couriers
+/dashboard/couriers/[id]
+/dashboard/sla
+/dashboard/alerts
+/dashboard/reports
+/dashboard/integrations
+/dashboard/billing
+/dashboard/team
+/dashboard/settings
+/dashboard/settings/profile
+/dashboard/settings/organization
+/dashboard/settings/notifications
+/dashboard/settings/security
+
+Admin/internal routes must be protected separately.
+
+==================================================
+10. DASHBOARD
+=============
+
+The dashboard must feel like a real professional B2B analytics product.
+
+Main overview:
+
+Top cards:
+
+* On-time delivery %
+* Average delivery time
+* Active shipments
+* At-risk shipments
+* SLA breaches
+* Failed deliveries
+
+Courier performance table:
+
+Courier
+On-time
+Average delivery time
+SLA compliance
+Failed delivery
+Score
+Trend
+
+Example:
+
+DHL
+96.8%
+1.4 days
+96.2%
+1.1%
+96/100
+
+DPD
+86.2%
+2.8 days
+84.1%
+4.8%
+81/100
+
+Do not hardcode these numbers.
+
+Use database data.
+
+Empty states must be beautiful and useful.
+
+==================================================
+11. COURIER SCORE
+=================
+
+Create a scoring engine.
+
+Score should consider:
+
+* SLA compliance
+* On-time delivery
+* Average delivery time
+* Failed delivery rate
+* Exception rate
+* Delay severity
+
+Do not create arbitrary black-box scoring.
+
+Document the formula.
+
+Example:
+
+Courier Score =
+weighted combination of normalized performance metrics.
+
+Keep weights configurable.
+
+Store calculated scores or metrics so the dashboard does not recalculate thousands of shipments on every page load.
+
+==================================================
+12. COURIER ADAPTER SYSTEM
+==========================
+
+Create a strict adapter interface.
+
+Example:
+
+CourierAdapter:
+
+authenticate()
+getTracking()
+getEvents()
+getEstimatedDelivery()
+normalizeEvent()
+refreshToken()
+validateCredentials()
+
+Create adapters:
+
+DHL
+DPD
+
+Structure:
+
+lib/couriers/
+adapter.ts
+types.ts
+dhl.ts
+dpd.ts
+registry.ts
+normalizer.ts
+
+Do not allow courier-specific API details to leak throughout the application.
+
+The rest of Doručenie must interact with:
+
+CourierAdapter
+
+not directly with DHL/DPD APIs.
+
+Make adding UPS/GLS/FedEx later straightforward.
+
+==================================================
+13. NORMALIZED SHIPMENT STATES
+==============================
+
+Internal statuses:
+
+CREATED
+PICKED_UP
+IN_TRANSIT
+OUT_FOR_DELIVERY
+DELIVERED
+EXCEPTION
+FAILED
+UNKNOWN
+
+Every courier-specific event must be normalized into these states.
+
+Store raw courier event payload separately where appropriate for debugging/audit.
+
+Never overwrite the original raw event.
+
+==================================================
+14. SHIPMENTS
+=============
+
+Shipment fields should include:
+
+id
+organization_id
+store_id
+courier_id
+tracking_number
+external_id
+status
+country
+region
+service
+shipped_at
+estimated_delivery_at
+delivered_at
+sla_deadline_at
+sla_status
+risk_status
+created_at
+updated_at
+
+Create indexes for common queries.
+
+Do not over-index everything.
+
+==================================================
+15. TRACKING EVENTS
+===================
+
+Create:
+
+shipment_events
+
+Fields:
+
+id
+shipment_id
+external_event_id
+event_type
+normalized_status
+location
+description
+occurred_at
+raw_payload
+created_at
+
+Unique:
+
+shipment_id + external_event_id
+
+This prevents duplicate event insertion.
+
+==================================================
+16. JOB SYSTEM
+==============
+
+Implement a PostgreSQL-backed job queue.
+
+Table:
+
+jobs
+
+Fields:
+
+id
+organization_id
+type
+payload
+status
+run_at
+locked_until
+attempts
+max_attempts
+last_error
+created_at
+updated_at
+completed_at
+
+Statuses:
+
+pending
+processing
+completed
+retry_wait
+failed
+
+Use:
+
+FOR UPDATE SKIP LOCKED
+
+for job claiming.
+
+Never implement read-then-update claiming.
+
+Claim must be atomic.
+
+==================================================
+17. JOB CLAIM FUNCTION
+======================
+
+Create a secure Postgres function/RPC for claiming jobs.
+
+Requirements:
+
+* atomic
+* FOR UPDATE SKIP LOCKED
+* batch limit
+* respects run_at
+* recovers expired leases
+* increments attempts
+* sets locked_until
+* prevents two workers claiming the same job
+
+Default lease:
+
+15 minutes.
+
+Do NOT use a 5-minute lease.
+
+==================================================
+18. JOB HEARTBEAT
+=================
+
+Long-running jobs must renew their lease.
+
+Heartbeat approximately every 60 seconds.
+
+Update:
+
+locked_until = now() + 15 minutes
+
+Only if:
+
+job status = processing
+
+and job is still owned by the worker.
+
+Create a worker ownership token if needed.
+
+Do not allow Worker B to extend Worker A's job.
+
+==================================================
+19. WORKER
+==========
+
+Worker processes small jobs.
+
+One job should normally represent one shipment check or another small atomic unit.
+
+Default batch:
+
+20 jobs.
+
+Do not create a worker that processes thousands of shipments in one invocation.
+
+Worker lifecycle:
+
+claim
+→ process
+→ success
+→ completed
+
+or:
+
+claim
+→ error
+→ retry scheduling
+
+or:
+
+claim
+→ max attempts
+→ failed
+
+==================================================
+20. RETRY SYSTEM
+================
+
+Use exponential backoff.
+
+Example:
+
+attempt 1:
+1 minute
+
+attempt 2:
+5 minutes
+
+attempt 3:
+15 minutes
+
+attempt 4:
+1 hour
+
+attempt 5:
+failed
+
+Make values configurable.
+
+Classify errors:
+
+retryable
+non_retryable
+reauthorization_required
+rate_limited
+temporary_provider_error
+
+Do not retry permanent authentication failures forever.
+
+OAuth integrations must support token refresh where applicable.
+
+A 401 must not automatically mean "invalid account".
+
+==================================================
+21. RATE LIMITING
+=================
+
+Implement per-courier rate limiting.
+
+Do not use read-then-write counters.
+
+Use atomic PostgreSQL operations.
+
+If a courier limit is reached:
+
+Do NOT fail the shipment.
+
+Reschedule the job.
+
+Store the next available time.
+
+Make rate limits configurable per courier.
+
+The architecture must later support Redis/Upstash if scale requires it.
+
+==================================================
+22. WORKER FAN-OUT
+==================
+
+Use bounded concurrency.
+
+Initial target:
+
+MAX_CONCURRENT_WORKERS = 5
+
+Each worker claims up to 20 jobs.
+
+Do not create unlimited self-invocation.
+
+Scheduler/dispatcher must explicitly await worker invocations when using Promise.all, or use a supported server runtime waitUntil mechanism when appropriate.
+
+Never rely on unsafe fire-and-forget behavior.
+
+Prevent uncontrolled fan-out.
+
+Track:
+
+queue_depth
+oldest_job_age
+processing_rate
+failure_rate
+
+==================================================
+23. SCHEDULER
+=============
+
+Use Supabase Cron / pg_cron for scheduling.
+
+Use pg_net or another secure invocation method to invoke the server-side worker.
+
+Run scheduler at an appropriate interval.
+
+Do NOT depend on Vercel Hobby cron.
+
+Do not make the entire system dependent on Vercel Cron.
+
+Scheduler responsibilities:
+
+* find shipments due for checking
+* enqueue jobs
+* trigger bounded worker processing
+* remain fast
+* never process thousands of shipments itself
+
+==================================================
+24. SHIPMENT CHECK FREQUENCY
+============================
+
+Do not check every shipment at the same interval.
+
+Create intelligent priority:
+
+Recently shipped:
+high frequency
+
+Out for delivery:
+very high frequency
+
+At-risk:
+high frequency
+
+Older in-transit:
+lower frequency
+
+Delivered:
+never check again
+
+Failed:
+check only if provider workflow requires it
+
+This reduces courier API calls.
+
+==================================================
+25. SLA ENGINE
+==============
+
+Create:
+
+lib/sla/
+
+engine.ts
+rules.ts
+calendar.ts
+risk.ts
+
+Support:
+
+* calendar days
+* business days
+* cutoff time
+* timezone
+* service level
+* destination country
+* destination region
+
+Statuses:
+
+ON_TIME
+AT_RISK
+BREACHED
+
+Do not wait until delivery occurs to calculate all SLA information.
+
+Calculate risk while shipment is still active.
+
+==================================================
+26. HOLIDAY CALENDAR
+====================
+
+Do not attempt to build a worldwide holiday database in MVP.
+
+Design for it.
+
+sla_rules must support:
+
+calendar_id
+
+Start with:
+
+* timezone
+* weekend
+* business-day calculation
+* cutoff time
+
+Make the calendar provider replaceable.
+
+==================================================
+27. AT-RISK ENGINE
+==================
+
+This is one of the core product differentiators.
+
+Detect shipments likely to miss SLA.
+
+Example:
+
+Promised:
+2 business days
+
+Current:
+1.8 business days
+
+Still:
+IN_TRANSIT
+
+Risk:
+HIGH
+
+Show:
+
+"127 shipments are likely to miss SLA."
+
+Do not claim certainty when the system only predicts risk.
+
+Use clear terminology:
+
+Likely
+At risk
+Estimated
+Predicted
+
+==================================================
+28. COURIER ANALYTICS
+=====================
+
+Create:
+
+/dashboard/couriers
+
+Each courier page:
+
+* overall score
+* on-time %
+* SLA compliance
+* average delivery time
+* failed delivery rate
+* exception rate
+* trend
+* country breakdown
+* service breakdown
+* recent breaches
+
+Charts:
+
+* performance over time
+* delivery time
+* SLA compliance
+* late shipments
+
+==================================================
+29. COUNTRY ANALYTICS
+=====================
+
+Show performance by:
+
+country
+region
+service
+
+Example:
+
+Italy
+DPD
+63% on-time
+
+Germany
+DPD
+91% on-time
+
+Do not assume the courier itself is always the problem.
+
+The product should identify:
+
+courier + country
+courier + region
+courier + service
+
+as separate performance dimensions.
+
+==================================================
+30. COURIER COMPARISON
+======================
+
+Allow users to compare:
+
+DHL vs DPD
+
+Metrics:
+
+* on-time
+* average delivery time
+* SLA compliance
+* failed deliveries
+* exception rate
+* score
+
+Make comparisons filterable by:
+
+date
+country
+service
+
+==================================================
+31. COURIER RECOMMENDATIONS
+===========================
+
+Create a recommendation engine.
+
+Example:
+
+"DPD is currently performing significantly worse than DHL for shipments to Italy."
+
+Potential recommendation:
+
+"Consider routing Italy shipments through DHL."
+
+Do NOT present speculative financial savings as facts.
+
+If estimating impact, label it clearly as:
+
+Estimated
+
+==================================================
+32. ALERT SYSTEM
+================
+
+Alerts:
+
+* SLA breach
+* shipment at risk
+* courier performance drop
+* courier connection failure
+* unusual delay
+* failed delivery
+* integration error
+* approaching shipment limit
+
+Alert table:
+
+alerts
+
+id
+organization_id
+type
+severity
+title
+message
+shipment_id
+courier_id
+metadata
+status
+created_at
+resolved_at
+
+Prevent duplicate alerts with idempotency/deduplication.
+
+==================================================
+33. EMAIL ALERTS
+================
+
+Use Resend.
+
+Templates:
+
+* Welcome
+* Email verification if applicable
+* Courier connection failure
+* SLA breach summary
+* Daily performance summary
+* Weekly courier report
+* Shipment risk alert
+* Subscription confirmation
+* Subscription problem
+
+Respect notification preferences.
+
+Never spam users with one email per shipment.
+
+Prefer aggregated alerts.
+
+==================================================
+34. REPORTS
+===========
+
+Create:
+
+/dashboard/reports
+
+Reports:
+
+Daily
+Weekly
+Monthly
+
+Include:
+
+* total shipments
+* on-time %
+* SLA compliance
+* late shipments
+* failed deliveries
+* courier performance
+* country performance
+* trends
+
+Allow export:
+
+CSV
+
+PDF can be added if stable.
+
+==================================================
+35. AGGREGATED METRICS
+======================
+
+Create:
+
+courier_daily_metrics
+
+Fields:
+
+date
+organization_id
+courier_id
+country
+shipments
+delivered
+late
+failed
+exceptions
+avg_delivery_days
+sla_compliance
+
+Use aggregation for dashboard performance.
+
+Do not calculate huge analytics queries on every page request.
+
+==================================================
+36. SHOPIFY
+===========
+
+Implement Shopify integration.
+
+Initial flow:
+
+Merchant connects Shopify
+→ OAuth
+→ store saved
+→ import orders/shipments
+→ extract tracking numbers
+→ identify courier
+→ create shipments
+→ enqueue tracking jobs
+
+Use secure OAuth handling.
+
+Store Shopify credentials securely.
+
+Do not expose Shopify access tokens.
+
+Create:
+
+stores
+store_connections
+
+Support multiple stores for Business plan.
+
+Respect Shopify API rate limits.
+
+Use webhooks where appropriate.
+
+==================================================
+37. COURIER CONNECTION UI
+=========================
+
+Create:
+
+/dashboard/integrations
+
+Cards:
+
+Shopify
+DHL
+DPD
+
+Each card:
+
+Connected
+Not connected
+Needs attention
+Error
+
+Actions:
+
+Connect
+Reconnect
+Test connection
+Disconnect
+
+When disconnecting:
+
+Confirm.
+
+Never delete historical shipment data automatically.
+
+==================================================
+38. SECRETS
+===========
+
+Use Supabase Vault for per-customer sensitive credentials where appropriate.
+
+Never store plaintext courier API secrets in normal application tables.
+
+courier_connections should store references/identifiers, not plaintext credentials.
+
+Example:
+
+secret_id
+
+Only server-side code can retrieve decrypted secrets.
+
+The browser must never be able to query decrypted secrets.
+
+Never expose Vault decrypted secret views/functions through normal client-accessible routes.
+
+Use a tightly controlled server-side credential service.
+
+Do not spread service-role keys throughout the codebase.
+
+Keep service-role credentials isolated to the minimum server-side modules/functions.
+
+==================================================
+39. WEBHOOK SECURITY
+====================
+
+Every webhook must:
+
+1. verify signature
+2. validate payload
+3. create idempotency record
+4. process
+5. return correct response
+
+Whop webhook:
+
+provider
+event_id
+
+Unique:
+
+provider + event_id
+
+Courier webhook events must have equivalent protection.
+
+Never trust event IDs from unauthenticated requests without signature verification.
+
+==================================================
+40. WHOP BILLING SYNCHRONIZATION
+================================
+
+Create billing synchronization service.
+
+Database:
+
+subscriptions
+
+Fields:
+
+id
+organization_id
+whop_customer_id
+whop_membership_id
+plan_id
+plan_key
+status
+current_period_start
+current_period_end
+cancel_at_period_end
+created_at
+updated_at
+
+Webhooks update subscription state.
+
+Possible states:
+
+active
+trialing
+past_due
+cancelled
+expired
+unknown
+
+Do not unlock premium access solely because a user clicked "Payment complete".
+
+==================================================
+41. PLAN ACCESS
+===============
+
+Create:
+
+lib/billing/access.ts
+
+Functions:
+
+hasActiveSubscription()
+getCurrentPlan()
+getPlanLimits()
+canUseFeature()
+canAddMember()
+canConnectCourier()
+canTrackShipment()
+canCreateStore()
+
+All server-side.
+
+Enforce shipment limits server-side.
+
+Do not rely only on UI hiding.
+
+==================================================
+42. EMBEDDED CHECKOUT UX
+========================
+
+Pricing page:
+
+User clicks Starter/Growth/Business.
+
+Show an embedded checkout panel/modal inside Dorucenie.
+
+The page remains Dorucenie.
+
+Do NOT redirect to:
+
+whop.com
+
+after checkout.
+
+After successful checkout:
+
+Show:
+
+"Payment successful"
+
+Then:
+
+"Activating your account..."
+
+Poll/refresh authoritative subscription state.
+
+Then:
+
+"Your Growth plan is active."
+
+Use Whop's embedded checkout component.
+
+Make checkout responsive.
+
+On mobile, it must remain usable.
+
+==================================================
+43. BILLING PAGE
+================
+
+Create:
+
+/dashboard/billing
+
+Display:
+
+Current plan
+Price
+Billing period
+Renewal date
+Shipment limit
+Usage
+Payment status
+
+Actions:
+
+Upgrade
+Downgrade
+Manage billing
+Cancel subscription
+
+Use Whop's supported billing/payment APIs for the actual operation.
+
+Do not fake cancellation locally.
+
+==================================================
+44. USAGE METERING
+==================
+
+Track shipment usage by billing period.
+
+Example:
+
+Growth:
+
+7,231 / 10,000 shipments
+
+Show progress.
+
+At 80%:
+
+warning
+
+At 100%:
+
+enforce configured plan behavior.
+
+Do not silently allow unlimited usage.
+
+==================================================
+45. DATABASE
+============
+
+Create proper Supabase migrations.
+
+Suggested tables:
+
+profiles
+organizations
+organization_members
+stores
+store_connections
+couriers
+courier_connections
+shipments
+shipment_events
+sla_rules
+sla_breaches
+jobs
+alerts
+courier_daily_metrics
+subscriptions
+webhook_events
+notification_preferences
+reports
+audit_logs
+
+Add proper:
+
+* primary keys
+* foreign keys
+* unique constraints
+* indexes
+* check constraints
+* timestamps
+
+Use UUIDs where appropriate.
+
+==================================================
+46. RLS
+=======
+
+Enable RLS on all exposed tenant-owned tables.
+
+Policies must ensure:
+
+user belongs to organization.
+
+Never write policies based on user-submitted organization_id alone.
+
+Create reusable authorization patterns.
+
+Test:
+
+User A cannot access Organization B.
+
+User A cannot update Organization B.
+
+User A cannot access Organization B's shipments.
+
+User A cannot access Organization B's billing.
+
+User A cannot access Organization B's secrets.
+
+Service-side operations must use controlled server credentials.
+
+==================================================
+47. AUDIT LOGS
+==============
+
+Create audit_logs.
+
+Record important events:
+
+* login/security events
+* organization changes
+* member added/removed
+* courier connected/disconnected
+* billing changes
+* SLA rule changes
+* integration changes
+* sensitive settings changes
+
+Do not log secrets.
+
+Do not log payment-card data.
+
+==================================================
+48. ERROR HANDLING
+==================
+
+Create consistent application errors.
+
+Do not expose stack traces to users.
+
+User sees:
+
+"Something went wrong. Please try again."
+
+Developer logs contain:
+
+request_id
+organization_id
+user_id
+job_id
+courier
+error_type
+duration
+
+Use Sentry.
+
+==================================================
+49. OBSERVABILITY
+=================
+
+Track:
+
+* API errors
+* database errors
+* worker failures
+* job backlog
+* courier latency
+* courier error rate
+* webhook failures
+* subscription webhook failures
+* email failures
+
+Important metrics:
+
+queue_depth
+oldest_job_age
+jobs_processed_per_minute
+jobs_failed_per_minute
+courier_api_latency
+courier_api_error_rate
+
+==================================================
+50. SECURITY
+============
+
+Implement:
+
+* secure cookies
+* CSRF protection where applicable
+* authorization checks
+* webhook signatures
+* rate limiting
+* input validation
+* SQL injection protection
+* XSS-safe rendering
+* secure headers
+* Content Security Policy where compatible
+* no secret leakage
+* no sensitive logs
+* least privilege
+* RLS
+
+Run dependency/security checks.
+
+Do not store card details.
+
+Whop handles payment collection.
+
+==================================================
+51. API DESIGN
+==============
+
+Create clean internal APIs.
+
+Examples:
+
+POST /api/integrations/shopify/connect
+POST /api/integrations/dhl/connect
+POST /api/integrations/dpd/connect
+
+POST /api/webhooks/whop
+POST /api/webhooks/dhl
+POST /api/webhooks/dpd
+
+POST /api/internal/worker
+POST /api/internal/scheduler
+
+GET /api/dashboard/overview
+GET /api/dashboard/couriers
+GET /api/dashboard/shipments
+
+POST /api/billing/checkout
+
+Internal endpoints must be strongly protected.
+
+Do not expose worker endpoints publicly without authentication/secret verification.
+
+==================================================
+52. INTERNAL WORKER SECURITY
+============================
+
+The worker endpoint must not be callable by arbitrary users.
+
+Use a server-to-server authentication mechanism.
+
+Validate it server-side.
+
+Never expose worker credentials to browser code.
+
+==================================================
+53. DATABASE JOB CLAIMING
+=========================
+
+Implement a PostgreSQL function similar to:
+
+claim_jobs(batch_size, worker_id)
+
+It must:
+
+* recover expired leases
+* select pending jobs
+* use FOR UPDATE SKIP LOCKED
+* set processing state
+* set locked_until
+* increment attempts
+* return claimed jobs
+
+The operation must be atomic.
+
+==================================================
+54. LEASE
+=========
+
+Default:
+
+LEASE_DURATION = 15 minutes
+
+HEARTBEAT_INTERVAL = 60 seconds
+
+Do not use a 5-minute lease.
+
+A job can only be reclaimed after:
+
+locked_until < now()
+
+Worker must periodically extend its own lease.
+
+==================================================
+55. JOB OWNERSHIP
+=================
+
+Use:
+
+worker_id
+
+or another ownership token.
+
+Only the worker that owns the job should be allowed to heartbeat/complete it.
+
+Prevent Worker B from completing Worker A's job.
+
+==================================================
+56. PERFORMANCE
+===============
+
+Optimize:
+
+* database indexes
+* pagination
+* aggregation
+* API calls
+* courier rate limits
+* background jobs
+* dashboard queries
+
+Never load all shipments into memory.
+
+Use cursor/keyset pagination for large datasets where appropriate.
+
+==================================================
+57. PAGINATION
+==============
+
+Shipment table:
+
+pagination
+
+Filters:
+
+* courier
+* status
+* SLA
+* country
+* date
+* risk
+* search tracking number
+
+Use server-side pagination.
+
+==================================================
+58. DESIGN SYSTEM
+=================
+
+Visual style:
+
+Premium B2B SaaS.
+
+Clean.
+
+Modern.
+
+Minimal.
+
+Professional.
+
+Avoid:
+
+* excessive gradients
+* childish illustrations
+* unnecessary animations
+* huge rounded cards everywhere
+* fake AI aesthetics
+
+Use:
+
+* clear typography
+* strong spacing
+* subtle borders
+* professional data tables
+* useful charts
+* accessible colors
+* clear status indicators
+
+Status colors should be consistent:
+
+Success
+Warning
+Danger
+Neutral
+
+Support dark mode if practical.
+
+==================================================
+59. RESPONSIVE
+==============
+
+Desktop-first because this is a B2B dashboard.
+
+But fully responsive:
+
+Desktop
+Tablet
+Mobile
+
+Mobile dashboard should not simply overflow desktop tables.
+
+Create mobile-friendly cards/table transformations.
+
+==================================================
+60. ACCESSIBILITY
+=================
+
+Implement:
+
+* keyboard navigation
+* semantic HTML
+* accessible forms
+* labels
+* focus states
+* ARIA where needed
+* contrast
+* screen-reader-friendly tables
+* accessible charts where possible
+
+==================================================
+61. EMPTY STATES
+================
+
+Every empty state must explain:
+
+What is empty.
+
+Why it is empty.
+
+What the user should do next.
+
+Example:
+
+"No shipments yet."
+
+"Connect Shopify or upload your first shipment data to start monitoring delivery performance."
+
+CTA:
+
+"Connect Shopify"
+
+==================================================
+62. ERROR STATES
+================
+
+Every important page must have:
+
+* loading state
+* empty state
+* error state
+* success state
+
+Do not show blank screens.
+
+==================================================
+63. DEMO / DEVELOPMENT MODE
+===========================
+
+Create a controlled demo mode.
+
+It may generate deterministic sample data.
+
+But:
+
+* clearly mark DEMO
+* never mix demo data with production data
+* never expose demo data as real customer data
+* disable demo mode in production unless explicitly enabled
+
+Use deterministic fixtures for tests.
+
+==================================================
+64. TESTING
+===========
+
+Unit tests:
+
+* SLA calculations
+* business days
+* risk calculation
+* courier normalization
+* score calculation
+* retry backoff
+* rate limiting
+* plan limits
+
+Integration tests:
+
+* authentication
+* RLS
+* job claiming
+* webhook idempotency
+* billing synchronization
+* courier connection
+
+E2E tests:
+
+* signup
+* login
+* onboarding
+* connect integration
+* dashboard
+* pricing
+* embedded checkout sandbox
+* subscription activation
+* plan restriction
+* logout
+
+Security tests:
+
+User A cannot access User B's organization.
+
+==================================================
+65. WHOP SANDBOX
+================
+
+Use Whop sandbox for development/testing.
+
+Create environment switching:
+
+WHOP_ENV=sandbox
+or
+WHOP_ENV=production
+
+Keep production and sandbox configuration completely separated.
+
+Never mix sandbox customer IDs with production records.
+
+Create a documented procedure for switching to production.
+
+==================================================
+66. ENVIRONMENT VARIABLES
+=========================
+
+Create:
+
+.env.example
+
+Include placeholders only.
+
+Examples:
+
+NEXT_PUBLIC_APP_URL=
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+
+SUPABASE_SERVICE_ROLE_KEY=
+
+WHOP_API_KEY=
+WHOP_WEBHOOK_SECRET=
+WHOP_ENV=
+
+WHOP_PLAN_STARTER=
+WHOP_PLAN_GROWTH=
+WHOP_PLAN_BUSINESS=
+
+RESEND_API_KEY=
+SENTRY_DSN=
+
+SHOPIFY_CLIENT_ID=
+SHOPIFY_CLIENT_SECRET=
+
+DHL_CLIENT_ID=
+DHL_CLIENT_SECRET=
+
+DPD_CLIENT_ID=
+DPD_CLIENT_SECRET=
+
+INTERNAL_WORKER_SECRET=
+
+Never commit .env files.
+
+==================================================
+67. FILE STRUCTURE
+==================
+
+Use a clean structure such as:
+
+app/
+components/
+lib/
+auth/
+billing/
+couriers/
+jobs/
+sla/
+security/
+notifications/
+analytics/
+shopify/
+supabase/
+migrations/
+functions/
+tests/
+e2e/
+public/
+
+Keep modules cohesive.
+
+==================================================
+68. DOCUMENTATION
+=================
+
+Create:
+
+README.md
+
+Include:
+
+* project overview
+* architecture
+* local development
+* environment variables
+* Supabase setup
+* migrations
+* Whop setup
+* Whop sandbox setup
+* Shopify setup
+* DHL setup
+* DPD setup
+* Resend setup
+* Sentry setup
+* deployment
+* production checklist
+* troubleshooting
+
+Create:
+
+docs/architecture.md
+
+docs/billing.md
+
+docs/courier-integrations.md
+
+docs/security.md
+
+docs/jobs.md
+
+==================================================
+69. DATABASE MIGRATIONS
+=======================
+
+Do not manually create production schema through random dashboard edits.
+
+Create versioned migrations.
+
+Migration order should make sense.
+
+Example:
+
+0001_extensions.sql
+0002_profiles.sql
+0003_organizations.sql
+0004_memberships.sql
+0005_stores.sql
+0006_couriers.sql
+0007_shipments.sql
+0008_events.sql
+0009_sla.sql
+0010_jobs.sql
+0011_alerts.sql
+0012_metrics.sql
+0013_billing.sql
+0014_webhooks.sql
+0015_rls.sql
+0016_functions.sql
+0017_indexes.sql
+
+Adjust as needed.
+
+==================================================
+70. SEED DATA
+=============
+
+Create development seed data.
+
+Include:
+
+* organization
+* users
+* couriers
+* shipments
+* tracking events
+* SLA rules
+* metrics
+* alerts
+
+Do not seed fake production customers.
+
+==================================================
+71. SEO
+=======
+
+Optimize public pages.
+
+Target terms around:
+
+courier performance monitoring
+delivery SLA monitoring
+shipping analytics
+courier analytics
+delivery performance
+last mile analytics
+shipment SLA
+
+Do not keyword stuff.
+
+Create useful content.
+
+==================================================
+72. LEGAL
+=========
+
+Create basic:
+
+Privacy Policy
+Terms of Service
+
+Do not claim legal compliance that has not been verified.
+
+Make company information configurable.
+
+==================================================
+73. SECURITY PAGE
+=================
+
+Create public /security page.
+
+Explain honestly:
+
+* encrypted connections
+* tenant isolation
+* RLS
+* secret management
+* payment handled by Whop
+* monitoring
+* backups where applicable
+
+Do not claim certifications that do not exist.
+
+==================================================
+74. ADMIN
+=========
+
+Create protected internal admin functionality.
+
+Admin can see:
+
+* organizations
+* users
+* subscriptions
+* system health
+* failed jobs
+* courier integration failures
+* webhook failures
+
+Admin must NOT casually expose customer secrets.
+
+Do not create a UI that displays decrypted API credentials.
+
+==================================================
+75. SYSTEM HEALTH
+=================
+
+Internal health page:
+
+Workers
+Jobs
+Database
+Whop
+Shopify
+DHL
+DPD
+Email
+Sentry
+
+Show:
+
+Healthy
+Warning
+Error
+
+==================================================
+76. RATE LIMITING FOR PUBLIC API
+================================
+
+Protect public endpoints.
+
+Do not allow unlimited requests.
+
+Use appropriate server-side rate limiting.
+
+Sensitive endpoints must have stricter limits.
+
+==================================================
+77. AUDITABILITY
+================
+
+Every important state transition should be traceable.
+
+For example:
+
+Shipment:
+
+IN_TRANSIT
+→ OUT_FOR_DELIVERY
+→ DELIVERED
+
+Keep event history.
+
+Do not silently overwrite history.
+
+==================================================
+78. DATA RETENTION
+==================
+
+Make retention configurable.
+
+Do not automatically delete business data without an explicit policy.
+
+Document retention assumptions.
+
+==================================================
+79. BACKUPS
+===========
+
+Use Supabase production backup capabilities where available.
+
+Document recovery expectations.
+
+Do not claim disaster recovery guarantees that have not been tested.
+
+==================================================
+80. FINAL PRODUCT FLOW
+======================
+
+The finished product should work like this:
+
+Visitor
+→ Landing page
+→ Pricing
+→ Signup
+→ Organization
+→ Onboarding
+→ Connect Shopify
+→ Connect DHL/DPD
+→ Import shipments
+→ Jobs created
+→ Workers process tracking
+→ Events normalized
+→ SLA calculated
+→ Risk calculated
+→ Metrics aggregated
+→ Alerts generated
+→ Dashboard updated
+
+Billing:
+
+Pricing
+→ embedded Whop checkout
+→ payment
+→ Whop webhook
+→ verify
+→ subscription synchronized
+→ plan activated
+→ usage limits applied
+
+==================================================
+81. FIRST-RUN EXPERIENCE
+========================
+
+A brand-new user must see:
+
+"Let's get your delivery data connected."
+
+Then:
+
+[Connect Shopify]
+
+[Connect Courier]
+
+[Configure SLA]
+
+After connection:
+
+"Importing shipments..."
+
+Then:
+
+"Monitoring started."
+
+The dashboard should show real progress.
+
+==================================================
+82. NO FAKE SUCCESS
+===================
+
+If Shopify connection fails:
+
+show failure.
+
+If DHL credentials are invalid:
+
+show failure.
+
+If Whop webhook hasn't arrived:
+
+do not mark subscription active merely because the browser says payment completed.
+
+If courier API is unavailable:
+
+show provider error and retry according to policy.
+
+Do not hide errors.
+
+==================================================
+83. PRODUCTION CHECKLIST
+========================
+
+Before declaring the application finished, verify:
+
+AUTH
+[ ] signup works
+[ ] login works
+[ ] password reset works
+[ ] protected routes work
+
+DATABASE
+[ ] migrations work
+[ ] indexes exist
+[ ] foreign keys exist
+[ ] RLS enabled
+[ ] RLS tested
+
+BILLING
+[ ] Whop sandbox checkout works
+[ ] embedded checkout works inside Dorucenie
+[ ] webhook signature verified
+[ ] idempotency works
+[ ] subscription sync works
+[ ] plan limits work
+[ ] cancellation state works
+
+COURIERS
+[ ] DHL adapter implemented
+[ ] DPD adapter implemented
+[ ] credentials securely stored
+[ ] connection testing works
+[ ] event normalization works
+
+JOBS
+[ ] SKIP LOCKED
+[ ] atomic claim
+[ ] locked_until
+[ ] heartbeat
+[ ] worker ownership
+[ ] retry
+[ ] max attempts
+[ ] failed state
+[ ] backlog metrics
+[ ] bounded concurrency
+
+SLA
+[ ] business days
+[ ] cutoff
+[ ] timezone
+[ ] at-risk
+[ ] breach
+[ ] courier score
+
+DASHBOARD
+[ ] overview
+[ ] shipments
+[ ] couriers
+[ ] SLA
+[ ] alerts
+[ ] reports
+[ ] billing
+[ ] settings
+
+SECURITY
+[ ] secrets not exposed
+[ ] service role not client-side
+[ ] Vault server-only
+[ ] webhook signatures
+[ ] RLS
+[ ] authorization
+[ ] rate limits
+
+QUALITY
+[ ] unit tests
+[ ] integration tests
+[ ] E2E tests
+[ ] lint
+[ ] typecheck
+[ ] production build
+[ ] no console errors
+[ ] no obvious TODOs
+[ ] no broken links
+
+==================================================
+84. DEPLOYMENT
+==============
+
+Deploy:
+
+Next.js → Vercel
+
+Supabase → production project
+
+Configure:
+
+* environment variables
+* Supabase migrations
+* Supabase functions
+* Supabase Cron
+* pg_net
+* Vault secrets
+* Whop production
+* webhook URLs
+* Shopify production
+* courier production credentials
+* Resend
+* Sentry
+
+Use a separate staging environment where practical.
+
+==================================================
+85. FINAL VERIFICATION
+======================
+
+Before telling the user the project is complete:
+
+1. Run typecheck.
+2. Run lint.
+3. Run unit tests.
+4. Run integration tests.
+5. Run E2E tests.
+6. Build production.
+7. Start production build locally.
+8. Verify the UI with browser automation.
+9. Check console errors.
+10. Check network failures.
+11. Verify authentication.
+12. Verify RLS.
+13. Verify Whop sandbox embedded checkout.
+14. Verify webhook processing.
+15. Verify job claiming.
+16. Verify lease recovery.
+17. Verify retries.
+18. Verify SLA calculations.
+19. Verify dashboard.
+20. Verify responsive layout.
+
+Fix discovered issues instead of merely reporting them.
+
+==================================================
+86. IMPORTANT ENGINEERING PRINCIPLE
+===================================
+
+Build the smallest system that can genuinely support the above architecture.
+
+Do not over-engineer.
+
+But do not remove critical production protections.
+
+The MVP must remain:
+
+Serverless
+Multi-tenant
+Secure
+Observable
+Recoverable
+Testable
+Scalable
+
+No VPS.
+
+No fake payment system.
+
+No fake courier system.
+
+No fake subscription checks.
+
+No client-side authorization.
+
+No plaintext customer API credentials.
+
+==================================================
+87. DEFINITION OF DONE
+======================
+
+The project is NOT finished when the pages exist.
+
+It is finished when:
+
+A new user can register.
+
+Create an organization.
+
+Complete onboarding.
+
+Connect supported integrations.
+
+Import real shipment data.
+
+Doručenie can monitor shipments automatically.
+
+Courier events are normalized.
+
+SLA is calculated.
+
+At-risk shipments are detected.
+
+Courier performance is calculated.
+
+Alerts are generated.
+
+Dashboard displays real data.
+
+The user can upgrade through an embedded Whop checkout without leaving Doručenie.
+
+Whop subscription state controls access.
+
+Webhook processing is secure and idempotent.
+
+Jobs recover after worker failure.
+
+RLS prevents tenant data leakage.
+
+Secrets remain server-side.
+
+Tests pass.
+
+Production build succeeds.
+
+The application can be deployed.
+
+==================================================
+88. EXECUTION ORDER
+===================
+
+Implement in this order:
+
+PHASE 1
+Project foundation
+Next.js
+TypeScript
+Tailwind
+UI system
+environment configuration
+
+PHASE 2
+Supabase
+Auth
+profiles
+organizations
+memberships
+RLS
+
+PHASE 3
+Core database
+couriers
+stores
+shipments
+events
+SLA
+jobs
+
+PHASE 4
+Job system
+claim function
+SKIP LOCKED
+lease
+heartbeat
+retry
+rate limiting
+
+PHASE 5
+Courier adapters
+DHL
+DPD
+normalization
+
+PHASE 6
+SLA Engine
+risk engine
+courier scoring
+metrics
+
+PHASE 7
+Shopify integration
+
+PHASE 8
+Whop billing
+embedded checkout
+webhooks
+subscriptions
+plan enforcement
+
+PHASE 9
+Dashboard
+analytics
+alerts
+reports
+
+PHASE 10
+Email
+Sentry
+observability
+audit logs
+
+PHASE 11
+Security hardening
+RLS tests
+authorization
+secret isolation
+rate limits
+
+PHASE 12
+Testing
+E2E
+browser verification
+production build
+
+PHASE 13
+SEO
+legal
+documentation
+
+PHASE 14
+Final production audit
+
+==================================================
+89. WHEN SOMETHING IS UNCERTAIN
+===============================
+
+Do not invent API behavior.
+
+Check the current official documentation for:
+
+* Whop
+* Supabase
+* Shopify
+* DHL
+* DPD
+* Vercel
+* Resend
+
+Use official documentation for implementation details that may have changed.
+
+If a courier's API cannot be accessed without credentials, implement the connector using the documented API contract and make credentials configurable.
+
+Do not fake a successful API response.
+
+==================================================
+90. FINAL INSTRUCTION
+=====================
+
+Build Doručenie completely.
+
+Do not stop after creating the skeleton.
+
+Do not give me a plan instead of implementation.
+
+Do not leave core features as placeholders.
+
+Implement the database, backend, frontend, billing, integrations, job system, SLA engine, dashboard, security, tests, documentation, and deployment configuration.
+
+The final result should look and behave like a real commercial SaaS product that is ready to launch at:
+
+https://dorucenie.com
+
+The user should be able to register, connect their commerce/courier systems, see real delivery analytics, and subscribe through an embedded Whop checkout without leaving Doručenie.
+
+Prioritize correctness, security, reliability, simplicity, and production readiness.
