@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 import { requireOrganizationMember } from "@/lib/auth";
@@ -12,13 +13,9 @@ function failure(request: Request, code: string) {
 }
 
 export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const params = url.searchParams;
-  const stateCookie = (await import("next/headers")).cookies;
-  const cookieStore = await stateCookie();
+  const params = new URL(request.url).searchParams;
+  const cookieStore = await cookies();
   const expectedState = cookieStore.get("dorucenie_shopify_oauth_state")?.value;
-
-  const responseHeaders = new Headers();
 
   try {
     if (!expectedState || !params.get("state") || params.get("state") !== expectedState) {
