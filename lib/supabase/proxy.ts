@@ -37,7 +37,10 @@ function authRedirect(request: NextRequest, error?: string) {
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
-  const isProtectedRoute = request.nextUrl.pathname.startsWith("/dashboard");
+  const isProtectedRoute =
+    request.nextUrl.pathname.startsWith("/dashboard") ||
+    request.nextUrl.pathname.startsWith("/stores") ||
+    request.nextUrl.pathname.startsWith("/api/integrations/");
 
   let supabase;
 
