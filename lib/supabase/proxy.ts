@@ -4,6 +4,19 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getSupabaseEnvironment } from "@/lib/supabase/env";
 import type { Database } from "@/lib/supabase/database.types";
 
+const AUTH_COOKIE_MAX_AGE = 60 * 60 * 24 * 30;
+
+function authCookieOptions(name: string, options: Record<string, unknown> = {}) {
+  if (!name.includes("-auth-token")) {
+    return options;
+  }
+
+  return {
+    ...options,
+    maxAge: AUTH_COOKIE_MAX_AGE,
+  };
+}
+
 function authRedirect(request: NextRequest, error?: string) {
   const loginUrl = request.nextUrl.clone();
   loginUrl.pathname = "/login";
@@ -39,7 +52,7 @@ export async function updateSession(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           response = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options),
+            response.cookies.set(name, value, authCookieOptions(name, options)),
           );
           Object.entries(headers).forEach(([name, value]) =>
             response.headers.set(name, value),
