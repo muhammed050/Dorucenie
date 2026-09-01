@@ -9,7 +9,7 @@ import {
   requireOrganizationMember,
 } from "@/lib/auth";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata: Metadata = {
@@ -74,12 +74,15 @@ export default async function DashboardPage() {
               {organization.name} is ready for its first connected delivery signal. This workspace will only show data belonging to your organization.
             </p>
           </div>
-          <form action={logoutAction}>
-            <Button type="submit" variant="secondary" size="sm">
-              <LogOut className="size-4" aria-hidden="true" />
-              Sign out
-            </Button>
-          </form>
+          <div className="flex items-center gap-2">
+            <ButtonLink href="/stores" variant="secondary" size="sm">Stores</ButtonLink>
+            <form action={logoutAction}>
+              <Button type="submit" variant="secondary" size="sm">
+                <LogOut className="size-4" aria-hidden="true" />
+                Sign out
+              </Button>
+            </form>
+          </div>
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
@@ -99,10 +102,7 @@ export default async function DashboardPage() {
                   const Icon = step.icon;
 
                   return (
-                    <li
-                      key={step.title}
-                      className="flex items-start gap-4 rounded-control border border-border-subtle bg-surface-muted px-4 py-4"
-                    >
+                    <li key={step.title} className="flex items-start gap-4 rounded-control border border-border-subtle bg-surface-muted px-4 py-4">
                       <span className="flex size-9 shrink-0 items-center justify-center rounded-control bg-brand-soft text-brand-strong">
                         <Icon className="size-4" aria-hidden="true" />
                       </span>
@@ -118,6 +118,9 @@ export default async function DashboardPage() {
                   );
                 })}
               </ol>
+              <div className="mt-5">
+                <ButtonLink href="/stores" size="md">Connect a store</ButtonLink>
+              </div>
             </CardContent>
           </Card>
 
@@ -150,12 +153,12 @@ export default async function DashboardPage() {
                   <div>
                     <h2 className="text-sm font-semibold text-ink">What happens next?</h2>
                     <p className="mt-1 text-sm leading-6 text-ink-soft">
-                      Integrations and billing are intentionally not enabled in this phase. Your workspace will stay honest until real delivery sources are available.
+                      Connect a store first. Then Doručenie can synchronize real orders and fulfillment events before we add courier tracking and SLA calculations.
                     </p>
                   </div>
                 </div>
                 <ul className="mt-5 space-y-2 text-sm text-ink-soft">
-                  {["Your account is verified by Supabase Auth", "Your organization is scoped by membership", "No tenant data is loaded from the browser"].map((item) => (
+                  {["Your account is verified by Supabase Auth", "Your organization is scoped by membership", "Store credentials stay server-side and encrypted"].map((item) => (
                     <li key={item} className="flex items-center gap-2">
                       <Check className="size-4 text-success" aria-hidden="true" />
                       {item}
