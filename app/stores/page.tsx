@@ -13,11 +13,7 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = Promise<{
-  connected?: string;
-  disconnected?: string;
-  error?: string;
-}>;
+type SearchParams = Promise<{ connected?: string; disconnected?: string; error?: string }>;
 
 const errors: Record<string, string> = {
   invalid_shop: "Enter a valid Shopify myshopify.com domain.",
@@ -65,112 +61,63 @@ export default async function StoresPage({ searchParams }: { searchParams: Searc
           <ButtonLink href="/dashboard" variant="secondary" size="sm">Back to dashboard</ButtonLink>
         </div>
 
-        {params.error ? (
-          <div className="mt-6 rounded-control border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger-strong">
-            {errors[params.error] || "Something went wrong. Please try again."}
-          </div>
-        ) : null}
-        {params.connected === "shopify" ? (
-          <div className="mt-6 flex items-center gap-2 rounded-control border border-success/30 bg-success-soft px-4 py-3 text-sm text-success-strong">
-            <CheckCircle2 className="size-4" aria-hidden="true" /> Shopify store connected successfully.
-          </div>
-        ) : null}
-        {params.disconnected === "shopify" ? (
-          <div className="mt-6 flex items-center gap-2 rounded-control border border-border-subtle bg-surface-muted px-4 py-3 text-sm text-ink-soft">
-            <Unplug className="size-4" aria-hidden="true" /> Shopify connection disconnected. Your store record remains available for a future reconnect.
-          </div>
-        ) : null}
+        {params.error ? <div className="mt-6 rounded-control border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger-strong">{errors[params.error] || "Something went wrong. Please try again."}</div> : null}
+        {params.connected === "shopify" ? <div className="mt-6 flex items-center gap-2 rounded-control border border-success/30 bg-success-soft px-4 py-3 text-sm text-success-strong"><CheckCircle2 className="size-4" aria-hidden="true" /> Shopify store connected successfully.</div> : null}
+        {params.disconnected === "shopify" ? <div className="mt-6 flex items-center gap-2 rounded-control border border-border-subtle bg-surface-muted px-4 py-3 text-sm text-ink-soft"><Unplug className="size-4" aria-hidden="true" /> Shopify connection disconnected. Your store record remains available for a future reconnect.</div> : null}
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
           <Card className="border-brand/30">
             <CardHeader>
-              <div className="flex size-10 items-center justify-center rounded-control bg-brand-soft text-brand-strong">
-                <Link2 className="size-5" aria-hidden="true" />
-              </div>
+              <div className="flex size-10 items-center justify-center rounded-control bg-brand-soft text-brand-strong"><Link2 className="size-5" aria-hidden="true" /></div>
               <CardTitle className="mt-4 text-xl">Connect Shopify</CardTitle>
-              <p className="mt-2 text-sm leading-6 text-ink-soft">
-                Enter the permanent <span className="font-mono">myshopify.com</span> domain. You will be redirected to Shopify to approve access.
-              </p>
+              <p className="mt-2 text-sm leading-6 text-ink-soft">Enter the permanent <span className="font-mono">myshopify.com</span> domain. You will be redirected to Shopify to approve access.</p>
             </CardHeader>
             <CardContent>
               <form action="/api/integrations/shopify/connect" method="get" className="space-y-4">
                 <label className="block">
                   <span className="mb-2 block text-sm font-medium text-ink">Shopify store domain</span>
                   <div className="flex flex-col gap-2 sm:flex-row">
-                    <input
-                      name="shop"
-                      required
-                      placeholder="your-store.myshopify.com"
-                      pattern="[A-Za-z0-9][A-Za-z0-9-]*\\.myshopify\\.com"
-                      className="min-h-11 w-full rounded-control border border-border-default bg-surface px-3 text-sm text-ink outline-none placeholder:text-ink-muted focus:border-brand focus:ring-2 focus:ring-focus sm:flex-1"
-                    />
+                    <input name="shop" required placeholder="your-store.myshopify.com" pattern="[A-Za-z0-9][A-Za-z0-9-]*\\.myshopify\\.com" className="min-h-11 w-full rounded-control border border-border-default bg-surface px-3 text-sm text-ink outline-none placeholder:text-ink-muted focus:border-brand focus:ring-2 focus:ring-focus sm:flex-1" />
                     <Button type="submit" className="sm:w-auto">Connect Shopify</Button>
                   </div>
                 </label>
               </form>
-              <p className="mt-4 text-xs leading-5 text-ink-muted">
-                Doručenie requests only the read permissions needed for order and fulfillment monitoring. The Shopify access token never reaches the browser.
-              </p>
+              <p className="mt-4 text-xs leading-5 text-ink-muted">Doručenie requests only the read permissions needed for order and fulfillment monitoring. The Shopify access token never reaches the browser.</p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle>Connected stores</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle>Connected stores</CardTitle></CardHeader>
             <CardContent>
-              {storesError ? (
-                <p className="text-sm text-danger-strong">We could not load your stores.</p>
-              ) : stores?.length ? (
+              {storesError ? <p className="text-sm text-danger-strong">We could not load your stores.</p> : stores?.length ? (
                 <div className="space-y-3">
                   {stores.map((store) => {
                     const connection = connectionByStore.get(store.id);
                     const active = connection?.status === "active";
-                    const shopDomain = typeof connection?.metadata === "object" && connection?.metadata && "shop_domain" in connection.metadata
-                      ? String(connection.metadata.shop_domain || "")
-                      : "";
+                    const metadata = connection?.metadata;
+                    const shopDomain = metadata && typeof metadata === "object" && !Array.isArray(metadata) && typeof metadata.shop_domain === "string" ? metadata.shop_domain : "";
 
                     return (
                       <div key={store.id} className="rounded-control border border-border-subtle bg-surface-muted p-4">
                         <div className="flex items-start gap-3">
-                          <span className="flex size-9 shrink-0 items-center justify-center rounded-control bg-surface text-brand-strong">
-                            <StoreIcon className="size-4" aria-hidden="true" />
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <p className="font-medium text-ink">{store.name}</p>
-                            <p className="mt-1 truncate text-xs text-ink-muted">{shopDomain || store.external_store_id || "Shopify"}</p>
-                          </div>
-                          <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${active ? "bg-success-soft text-success-strong" : "bg-surface text-ink-muted"}`}>
-                            {active ? "Connected" : "Disconnected"}
-                          </span>
+                          <span className="flex size-9 shrink-0 items-center justify-center rounded-control bg-surface text-brand-strong"><StoreIcon className="size-4" aria-hidden="true" /></span>
+                          <div className="min-w-0 flex-1"><p className="font-medium text-ink">{store.name}</p><p className="mt-1 truncate text-xs text-ink-muted">{shopDomain || store.external_store_id || "Shopify"}</p></div>
+                          <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${active ? "bg-success-soft text-success-strong" : "bg-surface text-ink-muted"}`}>{active ? "Connected" : "Disconnected"}</span>
                         </div>
                         <div className="mt-4 flex flex-wrap items-center gap-2">
-                          {shopDomain ? (
-                            <a href={`https://${shopDomain}/admin`} target="_blank" rel="noreferrer" className="inline-flex min-h-9 items-center gap-1.5 rounded-control border border-border-default px-3 text-xs font-medium text-ink-soft hover:border-brand hover:bg-brand-soft">
-                              Open Shopify <ExternalLink className="size-3.5" aria-hidden="true" />
-                            </a>
-                          ) : null}
+                          {shopDomain ? <a href={`https://${shopDomain}/admin`} target="_blank" rel="noreferrer" className="inline-flex min-h-9 items-center gap-1.5 rounded-control border border-border-default px-3 text-xs font-medium text-ink-soft hover:border-brand hover:bg-brand-soft">Open Shopify <ExternalLink className="size-3.5" aria-hidden="true" /></a> : null}
                           {active ? (
-                            <form action="/api/integrations/shopify/disconnect" method="post">
-                              <input type="hidden" name="store_id" value={store.id} />
-                              <Button type="submit" variant="secondary" size="sm">Disconnect</Button>
-                            </form>
-                          ) : (
-                            <a href={`/api/integrations/shopify/connect?shop=${encodeURIComponent(shopDomain)}`} className="inline-flex min-h-9 items-center gap-1.5 rounded-control border border-brand bg-brand px-3 text-xs font-medium text-on-brand hover:bg-brand-strong">
-                              Reconnect
-                            </a>
-                          )}
+                            <form action="/api/integrations/shopify/disconnect" method="post"><input type="hidden" name="store_id" value={store.id} /><Button type="submit" variant="secondary" size="sm">Disconnect</Button></form>
+                          ) : shopDomain ? (
+                            <a href={`/api/integrations/shopify/connect?shop=${encodeURIComponent(shopDomain)}`} className="inline-flex min-h-9 items-center gap-1.5 rounded-control border border-brand bg-brand px-3 text-xs font-medium text-on-brand hover:bg-brand-strong">Reconnect</a>
+                          ) : null}
                         </div>
                       </div>
                     );
                   })}
                 </div>
               ) : (
-                <div className="rounded-control border border-dashed border-border-default bg-surface-muted px-5 py-8 text-center">
-                  <StoreIcon className="mx-auto size-6 text-ink-muted" aria-hidden="true" />
-                  <p className="mt-3 text-sm font-medium text-ink">No stores connected yet</p>
-                  <p className="mt-1 text-sm leading-6 text-ink-soft">Connect Shopify to make real order data available to Doručenie.</p>
-                </div>
+                <div className="rounded-control border border-dashed border-border-default bg-surface-muted px-5 py-8 text-center"><StoreIcon className="mx-auto size-6 text-ink-muted" aria-hidden="true" /><p className="mt-3 text-sm font-medium text-ink">No stores connected yet</p><p className="mt-1 text-sm leading-6 text-ink-soft">Connect Shopify to make real order data available to Doručenie.</p></div>
               )}
             </CardContent>
           </Card>
